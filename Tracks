@@ -1,0 +1,19 @@
+// =====================================================
+//  TU WKLEJASZ LINKI DO PIOSENEK
+//  Każdy link w osobnej linii, w cudzysłowie, z przecinkiem na końcu.
+//
+//  Wariant 1 – sam link (nazwa weźmie się z nazwy pliku):
+//      "https://example.com/muzyka/piosenka.mp3",
+//
+//  Wariant 2 – link z własną nazwą:
+//      { name: "Moja piosenka", url: "https://example.com/piosenka.mp3" },
+//
+//  Link musi być BEZPOŚREDNI do pliku audio (np. kończy się na .mp3)
+//  i serwer musi pozwalać na CORS, inaczej equalizer nie zadziała.
+//  Linki z YouTube / Spotify / SoundCloud NIE zadziałają.
+// =====================================================
+
+const TRACKS = [
+    // "https://raw.githubusercontent.com/lipiecgabriel4-wq/zay0ox/main/music/przyklad.mp3",
+    // { name: "Moja piosenka", url: "https://example.com/piosenka.mp3" },
+];
