@@ -1,6 +1,3 @@
-const GITHUB_USER = "lipiecgabriel4-wq";
-const GITHUB_REPO = "zay0ox";
-
 const eqFrequencies = [32, 64, 125, 250, 500, '1k', '2k', '4k', '8k', '16k'];
 let playlist = [];
 let currentIndex = 0;
@@ -118,28 +115,24 @@ function changeEqFilter(index, value) {
     }
 }
 
-async function loadMusicFromGitHub() {
+function loadMusicFromLinks() {
     const statusText = document.getElementById('statusText');
-    try {
-        const response = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/music`);
-        const data = await response.json();
+    const list = (typeof TRACKS !== 'undefined' && Array.isArray(TRACKS)) ? TRACKS : [];
 
-        playlist = data
-            .filter(file => file.name.endsWith('.mp3'))
-            .map(file => ({
-                name: file.name.replace(/\.[^/.]+$/, ""),
-                url: file.download_url
-            }));
+    playlist = list
+        .map(t => {
+            if (typeof t === 'string') {
+                const clean = t.split('?')[0];
+                let name = clean.split('/').pop().replace(/\.[^/.]+$/, "");
+                try { name = decodeURIComponent(name); } catch (e) {}
+                return { name: name || 'Utwór', url: t.trim() };
+            }
+            return { name: t.name || 'Utwór', url: (t.url || '').trim() };
+        })
+        .filter(t => t.url);
 
-        if (statusText) statusText.innerText = `${playlist.length} utworów gotowych`;
-        renderPlaylist();
-    } catch (err) {
-        const songListEl = document.getElementById('song-list');
-        if (songListEl) {
-            songListEl.innerHTML = '<div style="color: #ff6b6b; padding: 10px; font-size: 0.8rem;">Błąd wczytywania folderu music/</div>';
-        }
-        if (statusText) statusText.innerText = "Błąd";
-    }
+    if (statusText) statusText.innerText = `${playlist.length} utworów gotowych`;
+    renderPlaylist();
 }
 
 function renderPlaylist() {
@@ -255,4 +248,4 @@ window.addEventListener('pageshow', resumeIfNeeded);
 window.addEventListener('focus', resumeIfNeeded);
 
 generateEqSliders();
-loadMusicFromGitHub();
+loadMusicFromLinks();
