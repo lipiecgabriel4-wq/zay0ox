@@ -122,7 +122,6 @@
                     sliderGroup.innerHTML = `
                         <div class="eq-db" id="val-db-${index}">0dB</div>
                         <div class="eq-slider-container">
-                            <!-- Zwiększony zakres suwaka do -30 / +30 dB -->
                             <input type="range" class="eq-slider" min="-30" max="30" value="0" step="0.5" oninput="changeEqFilter(${index}, this.value)">
                         </div>
                         <div class="eq-freq-label">${freq}</div>
@@ -137,11 +136,9 @@
                 audioCtx = new AudioContext();
                 sourceNode = audioCtx.createMediaElementSource(audioPlayer);
 
-                // Bezpieczna głośność z dużym zapasem na mocne podbicie do ±30dB
                 gainNode = audioCtx.createGain();
                 gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
 
-                // Ekstremalnie czuły limiter chroniący przed charczeniem przy ±30dB
                 limiterNode = audioCtx.createDynamicsCompressor();
                 limiterNode.threshold.setValueAtTime(-3.0, audioCtx.currentTime);
                 limiterNode.knee.setValueAtTime(0, audioCtx.currentTime);
@@ -174,16 +171,6 @@
                 current.connect(gainNode);
                 gainNode.connect(limiterNode);
                 limiterNode.connect(audioCtx.destination);
-
-                // Pętla podtrzymująca dla iPhone'a
-                try {
-                    const silentBuffer = audioCtx.createBuffer(1, 1, 22050);
-                    const backgroundNode = audioCtx.createBufferSource();
-                    backgroundNode.buffer = silentBuffer;
-                    backgroundNode.loop = true;
-                    backgroundNode.connect(audioCtx.destination);
-                    backgroundNode.start(0);
-                } catch (e) {}
 
                 isAudioInit = true;
             }
@@ -244,14 +231,16 @@
                     await audioCtx.resume();
                 }
 
-                // Bezpośrednie przypisanie URL do playera – idealne dla iOS
                 audioPlayer.src = track.url;
                 audioPlayer.load();
                 
                 try {
                     await audioPlayer.play();
+                    if ('mediaSession' in navigator) {
+                        navigator.mediaSession.playbackState = 'playing';
+                    }
                 } catch (err) {
-                    console.log("Autoplay zablokowany, wymaga interakcji");
+                    console.log("Autoplay zablokowany");
                 }
                 
                 document.getElementById('nowPlayingTitle').innerText = track.name;
@@ -267,8 +256,15 @@
                         album: 'Folder music/'
                     });
 
-                    navigator.mediaSession.setActionHandler('play', () => { togglePlay(); });
-                    navigator.mediaSession.setActionHandler('pause', () => { togglePlay(); });
+                    navigator.mediaSession.setActionHandler('play', async () => {
+                        if (audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
+                        audioPlayer.play();
+                        navigator.mediaSession.playbackState = 'playing';
+                    });
+                    navigator.mediaSession.setActionHandler('pause', () => {
+                        audioPlayer.pause();
+                        navigator.mediaSession.playbackState = 'paused';
+                    });
                     navigator.mediaSession.setActionHandler('previoustrack', () => { prevTrack(); });
                     navigator.mediaSession.setActionHandler('nexttrack', () => { nextTrack(); });
                 }
@@ -281,8 +277,10 @@
                         audioCtx.resume();
                     }
                     audioPlayer.play();
+                    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
                 } else {
                     audioPlayer.pause();
+                    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
                 }
             }
 
@@ -294,6 +292,18 @@
             function prevTrack() {
                 if (currentIndex - 1 >= 0) playTrack(currentIndex - 1);
             }
+
+            // Agresywne wznawianie AudioContext po powrocie z zablokowanego ekranu na iOS
+            document.addEventListener('visibilitychange', async () => {
+                if (!document.hidden) {
+                    if (audioCtx && audioCtx.state === 'suspended') {
+                        await audioCtx.resume();
+                    }
+                    if (audioPlayer.paused && audioPlayer.currentTime > 0 && !audioPlayer.ended) {
+                        audioPlayer.play().catch(() => {});
+                    }
+                }
+            });
 
             audioPlayer.onended = nextTrack;
             generateEqSliders();
