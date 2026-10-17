@@ -1,10 +1,7 @@
-// Dane repozytorium GitHub
 const GITHUB_USER = "lipiecgabriel4-wq";
 const GITHUB_REPO = "zay0ox";
 
-// Częstotliwości korektora graficznego
 const eqFrequencies = [32, 64, 125, 250, 500, '1k', '2k', '4k', '8k', '16k'];
-
 let playlist = [];
 let currentIndex = 0;
 
@@ -13,14 +10,16 @@ let isAudioInit = false;
 
 const audioPlayer = document.getElementById('audioPlayer');
 
-// Regulacja głośności z zapasem mocy przeciwko przesterom
+// Wymuszenie ciągłego działania na iOS
+audioPlayer.setAttribute('playsinline', '');
+audioPlayer.setAttribute('webkit-playsinline', '');
+
 function changeVolume(val) {
     if (gainNode && audioCtx) {
         gainNode.gain.setValueAtTime((val / 100) * 0.4, audioCtx.currentTime);
     }
 }
 
-// Generowanie suwaków equalizera w HTML
 function generateEqSliders() {
     const container = document.getElementById('eq-sliders-container');
     if (!container) return;
@@ -40,7 +39,6 @@ function generateEqSliders() {
     });
 }
 
-// Inicjalizacja Web Audio API i silnika dźwięku
 function initAudioContext() {
     if (isAudioInit) return;
     
@@ -48,11 +46,9 @@ function initAudioContext() {
     audioCtx = new AudioContext();
     sourceNode = audioCtx.createMediaElementSource(audioPlayer);
 
-    // Węzeł tłumika głośności (zapas cyfrowy)
     gainNode = audioCtx.createGain();
     gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
 
-    // Limiter (DynamicsCompressor) wyłapujący szczyty sygnału
     limiterNode = audioCtx.createDynamicsCompressor();
     limiterNode.threshold.setValueAtTime(-2.5, audioCtx.currentTime);
     limiterNode.knee.setValueAtTime(0, audioCtx.currentTime);
@@ -60,7 +56,6 @@ function initAudioContext() {
     limiterNode.attack.setValueAtTime(0.002, audioCtx.currentTime);
     limiterNode.release.setValueAtTime(0.05, audioCtx.currentTime);
 
-    // Filtry Biquad dla poszczególnych pasm
     eqFilters = eqFrequencies.map((freq, index) => {
         const filter = audioCtx.createBiquadFilter();
         if (index === 0) {
@@ -78,7 +73,6 @@ function initAudioContext() {
         return filter;
     });
 
-    // Łączenie toru audio: Źródło -> Filtry EQ -> Gain -> Limiter -> Wyjście
     let current = sourceNode;
     eqFilters.forEach(filter => {
         current.connect(filter);
@@ -88,10 +82,18 @@ function initAudioContext() {
     gainNode.connect(limiterNode);
     limiterNode.connect(audioCtx.destination);
     
+    try {
+        const silentBuffer = audioCtx.createBuffer(1, 1, 22050);
+        const backgroundNode = audioCtx.createBufferSource();
+        backgroundNode.buffer = silentBuffer;
+        backgroundNode.loop = true;
+        backgroundNode.connect(audioCtx.destination);
+        backgroundNode.start(0);
+    } catch (e) {}
+
     isAudioInit = true;
 }
 
-// Obsługa płynnej zmiany wartości pasm (bez trzasków)
 function changeEqFilter(index, value) {
     if (!isAudioInit) initAudioContext();
     
@@ -105,7 +107,6 @@ function changeEqFilter(index, value) {
     }
 }
 
-// Skanowanie i automatyczne ładowanie plików MP3 z folderu music/ na GitHubie
 async function loadMusicFromGitHub() {
     const statusText = document.getElementById('statusText');
     try {
@@ -130,7 +131,6 @@ async function loadMusicFromGitHub() {
     }
 }
 
-// Wyświetlanie listy utworów
 function renderPlaylist() {
     const songListEl = document.getElementById('song-list');
     if (!songListEl) return;
@@ -149,7 +149,6 @@ function renderPlaylist() {
     });
 }
 
-// Konfiguracja Media Session (odtwarzanie w tle i sterowanie z ekranu blokady telefonu)
 function setupMediaSession(trackName) {
     if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
@@ -165,7 +164,6 @@ function setupMediaSession(trackName) {
     }
 }
 
-// Odtwarzanie wybranego utworu
 async function playTrack(index) {
     if (playlist.length === 0) return;
     currentIndex = index;
@@ -173,6 +171,11 @@ async function playTrack(index) {
 
     const nowPlayingTitle = document.getElementById('nowPlayingTitle');
     if (nowPlayingTitle) nowPlayingTitle.innerText = "Ładowanie...";
+
+    if (!isAudioInit) initAudioContext();
+    if (audioCtx && audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+    }
 
     try {
         const response = await fetch(track.url);
@@ -182,21 +185,15 @@ async function playTrack(index) {
         audioPlayer.src = track.url;
     }
     
-    audioPlayer.play();
+    audioPlayer.load();
+    await audioPlayer.play();
+    
     if (nowPlayingTitle) nowPlayingTitle.innerText = track.name;
-
-    // Aktywacja Media Session dla pracy w tle
     setupMediaSession(track.name);
-
-    if (!isAudioInit) initAudioContext();
-    else if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
 
     renderPlaylist();
 }
 
-// Kontrolki odtwarzacza
 function togglePlay() {
     if (audioPlayer.paused) {
         if (!isAudioInit) initAudioContext();
@@ -218,14 +215,6 @@ function prevTrack() {
     if (currentIndex - 1 >= 0) playTrack(currentIndex - 1);
 }
 
-// Wznowienie AudioContext w tle (zabezpieczenie dla przeglądarek mobilnych)
-document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
-});
-
-// Inicjalizacja przy wystartowaniu
 if (audioPlayer) {
     audioPlayer.onended = nextTrack;
 }
