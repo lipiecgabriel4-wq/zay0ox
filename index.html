@@ -2,18 +2,21 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <title>One Take | Automatyczny Odtwarzacz GitHub</title>
+  <title>One Take | Player & EQ Pro</title>
   <style>
     :root {
       --bg-color: #f7f9fc;
       --panel-bg: #ffffff;
       --accent-orange: #f0743a;
+      --accent-green: #38a169;
       --text-main: #333333;
       --text-muted: #888888;
       --shadow-soft: 0 4px 12px rgba(0,0,0,0.05);
       --font-family: 'Open Sans', 'Segoe UI', sans-serif;
     }
+
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: var(--font-family);
@@ -24,6 +27,7 @@
       height: 100vh;
       overflow: hidden;
     }
+
     .header-panel {
       height: 60px;
       padding: 0 20px;
@@ -32,51 +36,344 @@
       justify-content: space-between;
       align-items: center;
       background: var(--panel-bg);
+      flex-shrink: 0;
     }
-    .header-logo { font-size: 1.3rem; font-weight: 600; color: #df2c2c; display: flex; gap: 10px; align-items: center; }
-    .main-container { display: flex; flex-grow: 1; height: calc(100vh - 60px); }
-    .sidebar-left { width: 250px; background: var(--panel-bg); border-right: 1px solid #e1e8ed; padding: 20px; }
-    .sidebar-right { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
-    .songs-panel { flex-grow: 1; background: var(--panel-bg); border: 1px solid #e1e8ed; border-radius: 12px; padding: 15px; overflow-y: auto; box-shadow: var(--shadow-soft); }
-    .song-item { padding: 10px; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+
+    .header-logo {
+      font-size: 1.3rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #df2c2c;
+    }
+
+    .main-container {
+      display: flex;
+      flex-grow: 1;
+      height: calc(100vh - 60px);
+    }
+
+    .sidebar-left {
+      width: 250px;
+      background: var(--panel-bg);
+      border-right: 1px solid #e1e8ed;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .volume-panel {
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .volume-percent {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .volume-slider-container {
+      width: 40px;
+      height: 200px;
+      position: relative;
+    }
+
+    input[type="range"].volume-slider {
+      appearance: none;
+      width: 200px;
+      height: 10px;
+      border-radius: 5px;
+      background: #e0e6ed;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-90deg);
+      cursor: pointer;
+    }
+
+    input[type="range"].volume-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background-color: var(--accent-orange);
+    }
+
+    .volume-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .sidebar-right {
+      flex-grow: 1;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow: hidden;
+    }
+
+    .eq-effects-panel {
+      background: var(--panel-bg);
+      border: 1px solid #e1e8ed;
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .eq-sliders {
+      display: flex;
+      gap: 5px;
+      padding: 10px 0;
+    }
+
+    .eq-slider-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .eq-db {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .eq-slider-container {
+      width: 100%;
+      height: 100px;
+      position: relative;
+    }
+
+    input[type="range"].eq-slider {
+      appearance: none;
+      width: 100px;
+      height: 6px;
+      border-radius: 3px;
+      background: #e0e6ed;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-90deg);
+      cursor: pointer;
+    }
+
+    input[type="range"].eq-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background-color: var(--accent-orange);
+    }
+
+    .eq-freq-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .search-input {
+      width: 100%;
+      background-color: var(--panel-bg);
+      border: 1px solid #e1e8ed;
+      padding: 10px 15px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .songs-panel {
+      flex-grow: 1;
+      background: var(--panel-bg);
+      border: 1px solid #e1e8ed;
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .song-list {
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+
+    .song-item {
+      padding: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
     .song-item:hover { background-color: #f1f4f8; }
     .song-item.active { background-color: var(--accent-orange); color: white; }
-    .player-controls { height: 80px; padding: 0 20px; border-top: 1px solid #e1e8ed; display: flex; justify-content: space-between; align-items: center; background: var(--panel-bg); }
-    audio { width: 100%; }
+
+    .player-controls {
+      height: 80px;
+      padding: 0 20px;
+      border-top: 1px solid #e1e8ed;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--panel-bg);
+      flex-shrink: 0;
+    }
+
+    .controls-btns {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .control-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.4rem;
+      color: var(--text-main);
+    }
+    .control-btn.main { color: var(--accent-orange); font-size: 1.8rem; }
   </style>
 </head>
 <body>
 
   <header class="header-panel">
-    <div class="header-logo"><span>▶</span><span>One Take | Cloud Free</span></div>
+    <div class="header-logo">
+      <span>▶</span>
+      <span>One Take | Player z Equalizerem</span>
+    </div>
   </header>
 
   <div class="main-container">
     <aside class="sidebar-left">
-      <h3>Playlista</h3>
-      <p style="font-size: 0.85rem; color: var(--text-muted);">Piosenki ładują się automatycznie z folderu <b>music/</b> na GitHubie.</p>
+      <div class="volume-panel">
+        <span class="volume-percent" id="volume-val">100%</span>
+        <div class="volume-slider-container">
+          <input type="range" class="volume-slider" min="0" max="100" value="100" oninput="changeVolume(this.value)">
+        </div>
+        <span class="volume-label">GŁOŚNOŚĆ</span>
+      </div>
     </aside>
 
     <main class="sidebar-right">
+      <!-- Equalizer z suwakami -->
+      <div class="eq-effects-panel">
+        <h4 style="margin:0 0 10px 0;">Korektor graficzny (Equalizer)</h4>
+        <div class="eq-sliders" id="eq-sliders-container"></div>
+      </div>
+
+      <!-- Wyszukiwarka i Lista Piosenek -->
+      <input type="text" class="search-input" id="search-input" placeholder="Wyszukaj utwór..." oninput="filterSongs(this.value)">
+      
       <div class="songs-panel">
-        <div class="song-list" id="song-list">Ładowanie utworów z folderu...</div>
+        <div class="song-list" id="song-list">Ładowanie z folderu music/...</div>
       </div>
     </main>
   </div>
 
   <footer class="player-controls">
-    <div id="nowPlaying" style="font-weight: 600;">Wybierz utwór...</div>
-    <audio id="audioPlayer" controls crossorigin="anonymous"></audio>
+    <div>
+      <span id="nowPlayingTitle" style="font-weight: 600;">Wybierz utwór...</span>
+    </div>
+    <div class="controls-btns">
+      <button class="control-btn" onclick="prevTrack()">⏮</button>
+      <button class="control-btn main" onclick="togglePlay()">▶</button>
+      <button class="control-btn" onclick="nextTrack()">⏭</button>
+    </div>
+    <div style="width: 150px;"></div>
   </footer>
 
+  <audio id="audioPlayer" crossorigin="anonymous"></audio>
+
   <script>
-    // Twoje dane z GitHuba są już tutaj wpisane:
     const GITHUB_USER = "lipiecgabriel4-wq";
     const GITHUB_REPO = "zay0ox";
 
+    const eqFrequencies = [32, 64, 125, 250, 500, '1k', '2k', '4k', '8k', '16k'];
     let playlist = [];
+    let filteredPlaylist = [];
     let currentIndex = 0;
+    
+    let audioCtx, sourceNode, eqFilters = [];
+    let isAudioInit = false;
+
     const audioPlayer = document.getElementById('audioPlayer');
+
+    function changeVolume(val) {
+      audioPlayer.volume = val / 100;
+      document.getElementById('volume-val').innerText = val + '%';
+    }
+
+    function generateEqSliders() {
+      const container = document.getElementById('eq-sliders-container');
+      container.innerHTML = '';
+      
+      eqFrequencies.forEach((freq, index) => {
+        const sliderGroup = document.createElement('div');
+        sliderGroup.className = 'eq-slider-group';
+        sliderGroup.innerHTML = `
+          <div class="eq-db" id="val-db-${index}">+0.0dB</div>
+          <div class="eq-slider-container">
+            <input type="range" class="eq-slider" min="-20" max="20" value="0" step="0.1" oninput="changeEqFilter(${index}, this.value)">
+          </div>
+          <div class="eq-freq-label">${freq}</div>
+        `;
+        container.appendChild(sliderGroup);
+      });
+    }
+
+    function initAudioContext() {
+      if (isAudioInit) return;
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+      sourceNode = audioCtx.createMediaElementSource(audioPlayer);
+
+      eqFrequencies.forEach((freq, index) => {
+        const filter = audioCtx.createBiquadFilter();
+        if (index === 0) {
+          filter.type = 'lowshelf';
+          filter.frequency.value = 32;
+        } else if (index === eqFrequencies.length - 1) {
+          filter.type = 'highshelf';
+          filter.frequency.value = 16000;
+        } else {
+          filter.type = 'peaking';
+          filter.frequency.value = typeof freq === 'string' ? parseInt(freq) * 1000 : freq;
+          filter.Q.value = 1;
+        }
+        filter.gain.value = 0;
+        eqFilters.push(filter);
+      });
+
+      let current = sourceNode;
+      eqFilters.forEach(filter => {
+        current.connect(filter);
+        current = filter;
+      });
+      current.connect(audioCtx.destination);
+      isAudioInit = true;
+    }
+
+    function changeEqFilter(index, value) {
+      if (!isAudioInit) initAudioContext();
+      document.getElementById(`val-db-${index}`).innerText = (value > 0 ? '+' : '') + parseFloat(value).toFixed(1) + 'dB';
+      if (eqFilters[index]) {
+        eqFilters[index].gain.value = parseFloat(value);
+      }
+    }
 
     async function loadMusicFromGitHub() {
       const url = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/music`;
@@ -84,7 +381,6 @@
         const response = await fetch(url);
         const data = await response.json();
         
-        // Filtrujemy tylko pliki mp3
         playlist = data
           .filter(file => file.name.endsWith('.mp3'))
           .map(file => ({
@@ -92,41 +388,81 @@
             url: file.download_url
           }));
 
+        filteredPlaylist = [...playlist];
         renderPlaylist();
       } catch (err) {
-        document.getElementById('song-list').innerHTML = "Błąd ładowania folderu music/. Sprawdź czy folder 'music' istnieje w repozytorium!";
+        document.getElementById('song-list').innerHTML = "Błąd pobierania piosenek z folderu music/. Sprawdź repozytorium!";
       }
     }
 
     function renderPlaylist() {
       const songListEl = document.getElementById('song-list');
       songListEl.innerHTML = '';
-      if (playlist.length === 0) {
-        songListEl.innerHTML = 'Brak plików MP3 w folderze music/';
+      if (filteredPlaylist.length === 0) {
+        songListEl.innerHTML = '<div style="color:#888; padding:10px;">Brak utworów w folderze music/</div>';
         return;
       }
-      playlist.forEach((track, index) => {
+      filteredPlaylist.forEach((track) => {
+        const realIndex = playlist.findIndex(p => p.url === track.url);
         const item = document.createElement('div');
-        item.className = `song-item ${index === currentIndex ? 'active' : ''}`;
+        item.className = `song-item ${realIndex === currentIndex ? 'active' : ''}`;
         item.innerHTML = `<span>🎵 ${track.name}</span>`;
-        item.onclick = () => playTrack(index);
+        item.onclick = () => playTrack(realIndex);
         songListEl.appendChild(item);
       });
     }
 
-    function playTrack(index) {
-      currentIndex = index;
-      const track = playlist[currentIndex];
-      audioPlayer.src = track.url;
-      audioPlayer.play();
-      document.getElementById('nowPlaying').innerText = "Odtwarzanie: " + track.name;
+    function filterSongs(query) {
+      filteredPlaylist = playlist.filter(track => track.name.toLowerCase().includes(query.toLowerCase()));
       renderPlaylist();
     }
 
-    audioPlayer.onended = () => {
-      if (currentIndex + 1 < playlist.length) playTrack(currentIndex + 1);
-    };
+    async function playTrack(index) {
+      if (playlist.length === 0) return;
+      currentIndex = index;
+      const track = playlist[currentIndex];
 
+      document.getElementById('nowPlayingTitle').innerText = "Ładowanie: " + track.name;
+
+      try {
+        // Pobieranie jako blob, żeby ominąć blokadę CORS dla Web Audio API
+        const response = await fetch(track.url);
+        const blob = await response.blob();
+        audioPlayer.src = URL.createObjectURL(blob);
+        audioPlayer.play();
+        document.getElementById('nowPlayingTitle').innerText = "Odtwarzanie: " + track.name;
+      } catch (e) {
+        audioPlayer.src = track.url;
+        audioPlayer.play();
+        document.getElementById('nowPlayingTitle').innerText = "Odtwarzanie: " + track.name;
+      }
+
+      if (!isAudioInit) {
+        initAudioContext();
+      } else if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      renderPlaylist();
+    }
+
+    function togglePlay() {
+      if (audioPlayer.paused) audioPlayer.play();
+      else audioPlayer.pause();
+    }
+
+    function nextTrack() {
+      if (currentIndex + 1 < playlist.length) playTrack(currentIndex + 1);
+      else playTrack(0);
+    }
+
+    function prevTrack() {
+      if (currentIndex - 1 >= 0) playTrack(currentIndex - 1);
+    }
+
+    audioPlayer.onended = nextTrack;
+
+    generateEqSliders();
     loadMusicFromGitHub();
   </script>
 </body>
