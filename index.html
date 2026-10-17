@@ -1,250 +1,370 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pl">
-<head>
-  <meta charset="UTF-8">
-  <title>One Take | Player & EQ Pro (Fixed)</title>
-  <style>
-    :root {
-      --bg-color: #f7f9fc;
-      --panel-bg: #ffffff;
-      --accent-orange: #f0743a;
-      --text-main: #333333;
-      --text-muted: #888888;
-      --shadow-soft: 0 4px 12px rgba(0,0,0,0.05);
-      --font-family: 'Open Sans', 'Segoe UI', sans-serif;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: var(--font-family);
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-    }
-    .header-panel {
-      height: 60px;
-      padding: 0 20px;
-      border-bottom: 1px solid #e1e8ed;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: var(--panel-bg);
-      flex-shrink: 0;
-    }
-    .header-logo { font-size: 1.3rem; font-weight: 600; display: flex; align-items: center; gap: 10px; color: #df2c2c; }
-    .main-container { display: flex; flex-grow: 1; height: calc(100vh - 60px); }
-    .sidebar-left { width: 250px; background: var(--panel-bg); border-right: 1px solid #e1e8ed; display: flex; flex-direction: column; padding: 30px; align-items: center; gap: 10px; }
-    .volume-slider-container { width: 40px; height: 200px; position: relative; }
-    input[type="range"].volume-slider {
-      appearance: none; width: 200px; height: 10px; border-radius: 5px; background: #e0e6ed;
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-90deg); cursor: pointer;
-    }
-    input[type="range"].volume-slider::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; border-radius: 50%; background-color: var(--accent-orange); }
-    .sidebar-right { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
-    .eq-effects-panel { background: var(--panel-bg); border: 1px solid #e1e8ed; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px; box-shadow: var(--shadow-soft); }
-    .eq-sliders { display: flex; gap: 5px; padding: 10px 0; }
-    .eq-slider-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
-    .eq-slider-container { width: 100%; height: 100px; position: relative; }
-    input[type="range"].eq-slider {
-      appearance: none; width: 100px; height: 6px; border-radius: 3px; background: #e0e6ed;
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-90deg); cursor: pointer;
-    }
-    input[type="range"].eq-slider::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; border-radius: 50%; background-color: var(--accent-orange); }
-    .songs-panel { flex-grow: 1; background: var(--panel-bg); border: 1px solid #e1e8ed; border-radius: 12px; padding: 10px; overflow-y: auto; box-shadow: var(--shadow-soft); }
-    .song-item { padding: 10px; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-    .song-item:hover { background-color: #f1f4f8; }
-    .song-item.active { background-color: var(--accent-orange); color: white; }
-    .player-controls { height: 80px; padding: 0 20px; border-top: 1px solid #e1e8ed; display: flex; justify-content: space-between; align-items: center; background: var(--panel-bg); }
-    .control-btn { background: none; border: none; cursor: pointer; font-size: 1.4rem; color: var(--text-main); }
-    .control-btn.main { color: var(--accent-orange); font-size: 1.8rem; }
-  </style>
-</head>
-<body>
+    <head>
+        <meta charset="utf-8">
+        <link rel="icon" href="/assets/icons/128.png">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <meta name="theme-color" content="#000000">
+        <meta name="description" content="Audio Equalizer i automatyczny odtwarzacz muzyki z folderu music/ w chmurze GitHub.">
+        <link rel="apple-touch-icon" href="/assets/icons/128.png">
+        <title>Audio Equalizer - EQ</title>
+        <style>
+            * { box-sizing: border-box; }
+            body#eq {
+                margin: 0;
+                padding: 0;
+                width: 700px;
+                height: 420px;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background-color: #121212;
+                color: #e0e0e0;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+            .header {
+                height: 45px;
+                background-color: #1f1f1f;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 15px;
+                border-bottom: 1px solid #333;
+                flex-shrink: 0;
+            }
+            .header-title {
+                font-weight: 600;
+                font-size: 0.95rem;
+                color: #f0743a;
+            }
+            .main-content {
+                display: flex;
+                flex-grow: 1;
+                height: calc(420px - 45px - 60px);
+                overflow: hidden;
+            }
+            .eq-panel {
+                width: 380px;
+                padding: 15px;
+                background-color: #181818;
+                border-right: 1px solid #333;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .eq-sliders {
+                display: flex;
+                justify-content: space-between;
+                flex-grow: 1;
+                align-items: center;
+            }
+            .eq-slider-group {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 5px;
+            }
+            .eq-db {
+                font-size: 0.65rem;
+                color: #888;
+            }
+            .eq-slider-container {
+                width: 25px;
+                height: 120px;
+                position: relative;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            input[type="range"].eq-slider {
+                appearance: none;
+                width: 120px;
+                height: 5px;
+                border-radius: 3px;
+                background: #333;
+                position: absolute;
+                transform: rotate(-90deg);
+                cursor: pointer;
+            }
+            input[type="range"].eq-slider::-webkit-slider-thumb {
+                appearance: none;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background-color: #f0743a;
+            }
+            .eq-freq-label {
+                font-size: 0.65rem;
+                color: #aaa;
+            }
+            .playlist-panel {
+                flex-grow: 1;
+                background-color: #121212;
+                display: flex;
+                flex-direction: column;
+                padding: 15px;
+                overflow: hidden;
+            }
+            .song-list {
+                flex-grow: 1;
+                overflow-y: auto;
+                background: #181818;
+                border: 1px solid #333;
+                border-radius: 6px;
+                padding: 8px;
+            }
+            .song-item {
+                padding: 6px 10px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 0.85rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .song-item:hover { background-color: #252525; }
+            .song-item.active { background-color: #f0743a; color: #fff; font-weight: 600; }
+            .player-footer {
+                height: 60px;
+                background-color: #1f1f1f;
+                border-top: 1px solid #333;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 15px;
+                flex-shrink: 0;
+            }
+            .now-playing {
+                font-size: 0.85rem;
+                width: 250px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .controls {
+                display: flex;
+                gap: 10px;
+                align-items: center;
+            }
+            .ctrl-btn {
+                background: none;
+                border: none;
+                color: #fff;
+                font-size: 1.1rem;
+                cursor: pointer;
+            }
+            .ctrl-btn.main { color: #f0743a; font-size: 1.4rem; }
+            .vol-container {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            input[type="range"].volume-slider {
+                appearance: none;
+                width: 80px;
+                height: 5px;
+                background: #333;
+                border-radius: 3px;
+                cursor: pointer;
+            }
+            input[type="range"].volume-slider::-webkit-slider-thumb {
+                appearance: none;
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background-color: #f0743a;
+            }
+        </style>
+    </head>
+    <body id="eq">
+        <header class="header">
+            <div class="header-title">🎛️ Audio Equalizer - EQ Pro</div>
+            <div id="statusText" style="font-size: 0.75rem; color: #888;">Ładowanie plików...</div>
+        </header>
 
-  <header class="header-panel">
-    <div class="header-logo"><span>▶</span><span>One Take | Player z EQ</span></div>
-  </header>
+        <div class="main-content">
+            <!-- Panel Equalizera -->
+            <div class="eq-panel">
+                <div style="font-size: 0.8rem; font-weight: 600; color: #ccc;">Korektor graficzny</div>
+                <div class="eq-sliders" id="eq-sliders-container"></div>
+            </div>
 
-  <div class="main-container">
-    <aside class="sidebar-left">
-      <span id="volume-val" style="font-weight:700; font-size:1.2rem;">80%</span>
-      <div class="volume-slider-container">
-        <!-- Ustawiłem domyślnie 80%, żeby zapobiec przesterom -->
-        <input type="range" class="volume-slider" min="0" max="100" value="80" oninput="changeVolume(this.value)">
-      </div>
-      <span style="font-size:0.8rem; font-weight:700; color:var(--text-muted);">GŁOŚNOŚĆ</span>
-    </aside>
+            <!-- Panel Playlisty -->
+            <div class="playlist-panel">
+                <div style="font-size: 0.8rem; font-weight: 600; color: #ccc; margin-bottom: 5px;">Folder /music/ na GitHub</div>
+                <div class="song-list" id="song-list">Pobieranie listy utworów...</div>
+            </div>
+        </div>
 
-    <main class="sidebar-right">
-      <div class="eq-effects-panel">
-        <h4 style="margin:0;">Equalizer (Zabezpieczony przed charczeniem)</h4>
-        <div class="eq-sliders" id="eq-sliders-container"></div>
-      </div>
-      <div class="songs-panel">
-        <div class="song-list" id="song-list">Ładowanie utworów...</div>
-      </div>
-    </main>
-  </div>
+        <footer class="player-footer">
+            <div class="now-playing" id="nowPlayingTitle">Wybierz utwór...</div>
+            <div class="controls">
+                <button class="ctrl-btn" onclick="prevTrack()">⏮</button>
+                <button class="ctrl-btn main" onclick="togglePlay()">▶</button>
+                <button class="ctrl-btn" onclick="nextTrack()">⏭</button>
+            </div>
+            <div class="vol-container">
+                <span style="font-size: 0.75rem; color: #888;">🔊</span>
+                <input type="range" class="volume-slider" min="0" max="100" value="80" oninput="changeVolume(this.value)">
+            </div>
+        </footer>
 
-  <footer class="player-controls">
-    <div id="nowPlayingTitle" style="font-weight: 600;">Wybierz utwór...</div>
-    <div style="display:flex; gap:15px; align-items:center;">
-      <button class="control-btn" onclick="prevTrack()">⏮</button>
-      <button class="control-btn main" onclick="togglePlay()">▶</button>
-      <button class="control-btn" onclick="nextTrack()">⏭</button>
-    </div>
-    <div style="width: 150px;"></div>
-  </footer>
+        <audio id="audioPlayer" crossorigin="anonymous"></audio>
 
-  <audio id="audioPlayer" crossorigin="anonymous"></audio>
+        <script>
+            // Twoje dane repozytorium GitHub
+            const GITHUB_USER = "lipiecgabriel4-wq";
+            const GITHUB_REPO = "zay0ox";
 
-  <script>
-    const GITHUB_USER = "lipiecgabriel4-wq";
-    const GITHUB_REPO = "zay0ox";
+            const eqFrequencies = [32, 64, 125, 250, 500, '1k', '2k', '4k', '8k', '16k'];
+            let playlist = [];
+            let currentIndex = 0;
+            
+            let audioCtx, sourceNode, gainNode, eqFilters = [];
+            let isAudioInit = false;
+            const audioPlayer = document.getElementById('audioPlayer');
 
-    const eqFrequencies = [32, 64, 125, 250, 500, '1k', '2k', '4k', '8k', '16k'];
-    let playlist = [];
-    let currentIndex = 0;
-    
-    let audioCtx, sourceNode, gainNode, eqFilters = [];
-    let isAudioInit = false;
-    const audioPlayer = document.getElementById('audioPlayer');
+            function changeVolume(val) {
+                if (gainNode) {
+                    gainNode.gain.value = (val / 100) * 0.8; // Zabezpieczenie przed przesterowaniem (charczeniem)
+                }
+            }
 
-    function changeVolume(val) {
-      if (gainNode) {
-        gainNode.gain.value = (val / 100) * 0.8; // Bezpieczny mnożnik przeciwko charczeniu
-      }
-      document.getElementById('volume-val').innerText = val + '%';
-    }
+            function generateEqSliders() {
+                const container = document.getElementById('eq-sliders-container');
+                container.innerHTML = '';
+                eqFrequencies.forEach((freq, index) => {
+                    const sliderGroup = document.createElement('div');
+                    sliderGroup.className = 'eq-slider-group';
+                    sliderGroup.innerHTML = `
+                        <div class="eq-db" id="val-db-${index}">0dB</div>
+                        <div class="eq-slider-container">
+                            <input type="range" class="eq-slider" min="-20" max="20" value="0" step="0.1" oninput="changeEqFilter(${index}, this.value)">
+                        </div>
+                        <div class="eq-freq-label">${freq}</div>
+                    `;
+                    container.appendChild(sliderGroup);
+                });
+            }
 
-    function generateEqSliders() {
-      const container = document.getElementById('eq-sliders-container');
-      container.innerHTML = '';
-      eqFrequencies.forEach((freq, index) => {
-        const sliderGroup = document.createElement('div');
-        sliderGroup.className = 'eq-slider-group';
-        sliderGroup.innerHTML = `
-          <div style="font-size:0.75rem; color:#888;" id="val-db-${index}">0dB</div>
-          <div class="eq-slider-container">
-            <input type="range" class="eq-slider" min="-20" max="20" value="0" step="0.1" oninput="changeEqFilter(${index}, this.value)">
-          </div>
-          <div style="font-size:0.7rem; font-weight:700;">${freq}</div>
-        `;
-        container.appendChild(sliderGroup);
-      });
-    }
+            function initAudioContext() {
+                if (isAudioInit) return;
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+                sourceNode = audioCtx.createMediaElementSource(audioPlayer);
 
-    function initAudioContext() {
-      if (isAudioInit) return;
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      audioCtx = new AudioContext();
-      sourceNode = audioCtx.createMediaElementSource(audioPlayer);
+                gainNode = audioCtx.createGain();
+                gainNode.gain.value = 0.8; // Bezpieczny poziom startowy
 
-      // Główny węzeł głośności zapobiegający przesterom
-      gainNode = audioCtx.createGain();
-      gainNode.gain.value = 0.8; // 80% głośności bazowej zapobiega "chrzęszczeniu"
+                eqFilters = eqFrequencies.map((freq, index) => {
+                    const filter = audioCtx.createBiquadFilter();
+                    if (index === 0) { filter.type = 'lowshelf'; filter.frequency.value = 32; }
+                    else if (index === eqFrequencies.length - 1) { filter.type = 'highshelf'; filter.frequency.value = 16000; }
+                    else {
+                        filter.type = 'peaking';
+                        filter.frequency.value = typeof freq === 'string' ? parseInt(freq) * 1000 : freq;
+                        filter.Q.value = 1;
+                    }
+                    filter.gain.value = 0;
+                    return filter;
+                });
 
-      eqFilters = eqFrequencies.map((freq, index) => {
-        const filter = audioCtx.createBiquadFilter();
-        if (index === 0) { filter.type = 'lowshelf'; filter.frequency.value = 32; }
-        else if (index === eqFrequencies.length - 1) { filter.type = 'highshelf'; filter.frequency.value = 16000; }
-        else {
-          filter.type = 'peaking';
-          filter.frequency.value = typeof freq === 'string' ? parseInt(freq) * 1000 : freq;
-          filter.Q.value = 1;
-        }
-        filter.gain.value = 0;
-        return filter;
-      });
+                let current = sourceNode;
+                eqFilters.forEach(filter => {
+                    current.connect(filter);
+                    current = filter;
+                });
+                current.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                isAudioInit = true;
+            }
 
-      // Łączymy: Źródło -> Filtry EQ -> Gain (Głośność) -> Głośniki
-      let current = sourceNode;
-      eqFilters.forEach(filter => {
-        current.connect(filter);
-        current = filter;
-      });
-      current.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      isAudioInit = true;
-    }
+            function changeEqFilter(index, value) {
+                if (!isAudioInit) initAudioContext();
+                document.getElementById(`val-db-${index}`).innerText = (value > 0 ? '+' : '') + parseFloat(value).toFixed(1) + 'dB';
+                if (eqFilters[index]) {
+                    eqFilters[index].gain.value = parseFloat(value);
+                }
+            }
 
-    function changeEqFilter(index, value) {
-      if (!isAudioInit) initAudioContext();
-      document.getElementById(`val-db-${index}`).innerText = (value > 0 ? '+' : '') + parseFloat(value).toFixed(1) + 'dB';
-      if (eqFilters[index]) {
-        eqFilters[index].gain.value = parseFloat(value);
-      }
-    }
+            async function loadMusicFromGitHub() {
+                try {
+                    const response = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/music`);
+                    const data = await response.json();
+                    playlist = data.filter(file => file.name.endsWith('.mp3')).map(file => ({
+                        name: file.name.replace(/\.[^/.]+$/, ""),
+                        url: file.download_url
+                    }));
+                    
+                    document.getElementById('statusText').innerText = `${playlist.length} utwory gotowe`;
+                    renderPlaylist();
+                } catch (err) {
+                    document.getElementById('song-list').innerHTML = '<div style="color: #ff6b6b; padding: 10px; font-size: 0.8rem;">Błąd pobierania folderu music/</div>';
+                    document.getElementById('statusText').innerText = "Błąd połączenia";
+                }
+            }
 
-    async function loadMusicFromGitHub() {
-      try {
-        const response = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/music`);
-        const data = await response.json();
-        playlist = data.filter(file => file.name.endsWith('.mp3')).map(file => ({
-          name: file.name.replace(/\.[^/.]+$/, ""),
-          url: file.download_url
-        }));
-        renderPlaylist();
-      } catch (err) {
-        document.getElementById('song-list').innerHTML = "Błąd pobierania piosenek.";
-      }
-    }
+            function renderPlaylist() {
+                const songListEl = document.getElementById('song-list');
+                songListEl.innerHTML = '';
+                if (playlist.length === 0) {
+                    songListEl.innerHTML = '<div style="color: #888; padding: 10px; font-size: 0.8rem;">Brak plików MP3 w folderze</div>';
+                    return;
+                }
+                playlist.forEach((track, index) => {
+                    const item = document.createElement('div');
+                    item.className = `song-item ${index === currentIndex ? 'active' : ''}`;
+                    item.innerHTML = `🎵 ${track.name}`;
+                    item.onclick = () => playTrack(index);
+                    songListEl.appendChild(item);
+                });
+            }
 
-    function renderPlaylist() {
-      const songListEl = document.getElementById('song-list');
-      songListEl.innerHTML = '';
-      playlist.forEach((track, index) => {
-        const item = document.createElement('div');
-        item.className = `song-item ${index === currentIndex ? 'active' : ''}`;
-        item.innerHTML = `<span>🎵 ${track.name}</span>`;
-        item.onclick = () => playTrack(index);
-        songListEl.appendChild(item);
-      });
-    }
+            async function playTrack(index) {
+                if (playlist.length === 0) return;
+                currentIndex = index;
+                const track = playlist[currentIndex];
 
-    async function playTrack(index) {
-      if (playlist.length === 0) return;
-      currentIndex = index;
-      const track = playlist[currentIndex];
+                document.getElementById('nowPlayingTitle').innerText = "Ładowanie...";
 
-      document.getElementById('nowPlayingTitle').innerText = "Odtwarzanie: " + track.name;
+                try {
+                    const response = await fetch(track.url);
+                    const blob = await response.blob();
+                    audioPlayer.src = URL.createObjectURL(blob);
+                } catch (e) {
+                    audioPlayer.src = track.url;
+                }
+                
+                audioPlayer.play();
+                document.getElementById('nowPlayingTitle').innerText = track.name;
 
-      try {
-        const response = await fetch(track.url);
-        const blob = await response.blob();
-        audioPlayer.src = URL.createObjectURL(blob);
-      } catch (e) {
-        audioPlayer.src = track.url;
-      }
-      
-      audioPlayer.play();
+                if (!isAudioInit) initAudioContext();
+                else if (audioCtx.state === 'suspended') audioCtx.resume();
 
-      if (!isAudioInit) initAudioContext();
-      else if (audioCtx.state === 'suspended') audioCtx.resume();
+                renderPlaylist();
+            }
 
-      renderPlaylist();
-    }
+            function togglePlay() {
+                if (audioPlayer.paused) {
+                    if (!isAudioInit) initAudioContext();
+                    audioPlayer.play();
+                } else {
+                    audioPlayer.pause();
+                }
+            }
 
-    function togglePlay() {
-      if (audioPlayer.paused) audioPlayer.play();
-      else audioPlayer.pause();
-    }
+            function nextTrack() {
+                if (currentIndex + 1 < playlist.length) playTrack(currentIndex + 1);
+                else playTrack(0);
+            }
 
-    function nextTrack() {
-      if (currentIndex + 1 < playlist.length) playTrack(currentIndex + 1);
-      else playTrack(0);
-    }
+            function prevTrack() {
+                if (currentIndex - 1 >= 0) playTrack(currentIndex - 1);
+            }
 
-    function prevTrack() {
-      if (currentIndex - 1 >= 0) playTrack(currentIndex - 1);
-    }
-
-    audioPlayer.onended = nextTrack;
-    generateEqSliders();
-    loadMusicFromGitHub();
-  </script>
-</body>
+            audioPlayer.onended = nextTrack;
+            generateEqSliders();
+            loadMusicFromGitHub();
+        </script>
+    </body>
 </html>
