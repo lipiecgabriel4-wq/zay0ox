@@ -13,10 +13,10 @@ let isAudioInit = false;
 
 const audioPlayer = document.getElementById('audioPlayer');
 
-// Regualcja głośności z zapasem mocy przeciwko przesterom
+// Regulacja głośności z zapasem mocy przeciwko przesterom
 function changeVolume(val) {
     if (gainNode && audioCtx) {
-        gainNode.gain.setValueAtTime((val / 100) * 0.5, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime((val / 100) * 0.4, audioCtx.currentTime);
     }
 }
 
@@ -32,7 +32,7 @@ function generateEqSliders() {
         sliderGroup.innerHTML = `
             <div class="eq-db" id="val-db-${index}">0dB</div>
             <div class="eq-slider-container">
-                <input type="range" class="eq-slider" min="-12" max="12" value="0" step="0.5" oninput="changeEqFilter(${index}, this.value)">
+                <input type="range" class="eq-slider" min="-20" max="20" value="0" step="0.5" oninput="changeEqFilter(${index}, this.value)">
             </div>
             <div class="eq-freq-label">${freq}</div>
         `;
@@ -50,14 +50,14 @@ function initAudioContext() {
 
     // Węzeł tłumika głośności (zapas cyfrowy)
     gainNode = audioCtx.createGain();
-    gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+    gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
 
     // Limiter (DynamicsCompressor) wyłapujący szczyty sygnału
     limiterNode = audioCtx.createDynamicsCompressor();
-    limiterNode.threshold.setValueAtTime(-1.0, audioCtx.currentTime);
+    limiterNode.threshold.setValueAtTime(-2.5, audioCtx.currentTime);
     limiterNode.knee.setValueAtTime(0, audioCtx.currentTime);
-    limiterNode.ratio.setValueAtTime(20, audioCtx.currentTime);
-    limiterNode.attack.setValueAtTime(0.003, audioCtx.currentTime);
+    limiterNode.ratio.setValueAtTime(25, audioCtx.currentTime);
+    limiterNode.attack.setValueAtTime(0.002, audioCtx.currentTime);
     limiterNode.release.setValueAtTime(0.05, audioCtx.currentTime);
 
     // Filtry Biquad dla poszczególnych pasm
@@ -149,6 +149,22 @@ function renderPlaylist() {
     });
 }
 
+// Konfiguracja Media Session (odtwarzanie w tle i sterowanie z ekranu blokady telefonu)
+function setupMediaSession(trackName) {
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: trackName,
+            artist: 'Audio Equalizer Pro',
+            album: 'Folder music/'
+        });
+
+        navigator.mediaSession.setActionHandler('play', () => { togglePlay(); });
+        navigator.mediaSession.setActionHandler('pause', () => { togglePlay(); });
+        navigator.mediaSession.setActionHandler('previoustrack', () => { prevTrack(); });
+        navigator.mediaSession.setActionHandler('nexttrack', () => { nextTrack(); });
+    }
+}
+
 // Odtwarzanie wybranego utworu
 async function playTrack(index) {
     if (playlist.length === 0) return;
@@ -169,8 +185,13 @@ async function playTrack(index) {
     audioPlayer.play();
     if (nowPlayingTitle) nowPlayingTitle.innerText = track.name;
 
+    // Aktywacja Media Session dla pracy w tle
+    setupMediaSession(track.name);
+
     if (!isAudioInit) initAudioContext();
-    else if (audioCtx.state === 'suspended') audioCtx.resume();
+    else if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
 
     renderPlaylist();
 }
@@ -179,7 +200,9 @@ async function playTrack(index) {
 function togglePlay() {
     if (audioPlayer.paused) {
         if (!isAudioInit) initAudioContext();
-        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
         audioPlayer.play();
     } else {
         audioPlayer.pause();
@@ -194,6 +217,13 @@ function nextTrack() {
 function prevTrack() {
     if (currentIndex - 1 >= 0) playTrack(currentIndex - 1);
 }
+
+// Wznowienie AudioContext w tle (zabezpieczenie dla przeglądarek mobilnych)
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+});
 
 // Inicjalizacja przy wystartowaniu
 if (audioPlayer) {
