@@ -65,7 +65,7 @@
     <body id="eq">
         <header class="header">
             <div class="header-title">🎛️ Audio Equalizer - Pro (±30dB)</div>
-            <div id="statusText" style="font-size: 0.75rem; color: #888;">Ładowanie z folderu music/...</div>
+            <div id="statusText" style="font-size: 0.75rem; color: #888;">Ładowanie...</div>
         </header>
 
         <div class="main-content">
@@ -75,7 +75,7 @@
             </div>
 
             <div class="playlist-panel">
-                <div style="font-size: 0.8rem; font-weight: 600; color: #ccc; margin-bottom: 5px;">Piosenki z folderu music/</div>
+                <div style="font-size: 0.8rem; font-weight: 600; color: #ccc; margin-bottom: 5px;">Playlista</div>
                 <div class="song-list" id="song-list">Pobieranie listy...</div>
             </div>
         </div>
@@ -95,6 +95,7 @@
 
         <audio id="audioPlayer" crossorigin="anonymous" playsinline webkit-playsinline preload="auto"></audio>
 
+        <script src="tracks.js"></script>
         <script src="app.js"></script>
     </body>
 </html>
