@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>One Take | Automatyczny Odtwarzacz GitHub</title>
+  <style>
+    :root {
+      --bg-color: #f7f9fc;
+      --panel-bg: #ffffff;
+      --accent-orange: #f0743a;
+      --text-main: #333333;
+      --text-muted: #888888;
+      --shadow-soft: 0 4px 12px rgba(0,0,0,0.05);
+      --font-family: 'Open Sans', 'Segoe UI', sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font-family);
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .header-panel {
+      height: 60px;
+      padding: 0 20px;
+      border-bottom: 1px solid #e1e8ed;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--panel-bg);
+    }
+    .header-logo { font-size: 1.3rem; font-weight: 600; color: #df2c2c; display: flex; gap: 10px; align-items: center; }
+    .main-container { display: flex; flex-grow: 1; height: calc(100vh - 60px); }
+    .sidebar-left { width: 250px; background: var(--panel-bg); border-right: 1px solid #e1e8ed; padding: 20px; }
+    .sidebar-right { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
+    .songs-panel { flex-grow: 1; background: var(--panel-bg); border: 1px solid #e1e8ed; border-radius: 12px; padding: 15px; overflow-y: auto; box-shadow: var(--shadow-soft); }
+    .song-item { padding: 10px; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .song-item:hover { background-color: #f1f4f8; }
+    .song-item.active { background-color: var(--accent-orange); color: white; }
+    .player-controls { height: 80px; padding: 0 20px; border-top: 1px solid #e1e8ed; display: flex; justify-content: space-between; align-items: center; background: var(--panel-bg); }
+    audio { width: 100%; }
+  </style>
+</head>
+<body>
+
+  <header class="header-panel">
+    <div class="header-logo"><span>▶</span><span>One Take | Cloud Free</span></div>
+  </header>
+
+  <div class="main-container">
+    <aside class="sidebar-left">
+      <h3>Playlista</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted);">Piosenki ładują się automatycznie z folderu <b>music/</b> na GitHubie.</p>
+    </aside>
+
+    <main class="sidebar-right">
+      <div class="songs-panel">
+        <div class="song-list" id="song-list">Ładowanie utworów z folderu...</div>
+      </div>
+    </main>
+  </div>
+
+  <footer class="player-controls">
+    <div id="nowPlaying" style="font-weight: 600;">Wybierz utwór...</div>
+    <audio id="audioPlayer" controls crossorigin="anonymous"></audio>
+  </footer>
+
+  <script>
+    // WPISZ TUTAJ SWOJĄ NAZWĘ UŻYTKOWNIKA Z GITHUBA ORAZ NAZWĘ REPOZYTORIUM:
+    const GITHUB_USER = "TWOJ_NICK_GITHUB";
+    const GITHUB_REPO = "NAZWA_REPOZYTORIUM";
+
+    let playlist = [];
+    let currentIndex = 0;
+    const audioPlayer = document.getElementById('audioPlayer');
+
+    async function loadMusicFromGitHub() {
+      const url = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/music`;
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        // Filtrujemy tylko pliki mp3
+        playlist = data
+          .filter(file => file.name.endsWith('.mp3'))
+          .map(file => ({
+            name: file.name.replace(/\.[^/.]+$/, ""),
+            url: file.download_url
+          }));
+
+        renderPlaylist();
+      } catch (err) {
+        document.getElementById('song-list').innerHTML = "Błąd ładowania folderu music/. Sprawdź nazwę użytkownika i repozytorium w kodzie!";
+      }
+    }
+
+    function renderPlaylist() {
+      const songListEl = document.getElementById('song-list');
+      songListEl.innerHTML = '';
+      if (playlist.length === 0) {
+        songListEl.innerHTML = 'Brak plików MP3 w folderze music/';
+        return;
+      }
+      playlist.forEach((track, index) => {
+        const item = document.createElement('div');
+        item.className = `song-item ${index === currentIndex ? 'active' : ''}`;
+        item.innerHTML = `<span>🎵 ${track.name}</span>`;
+        item.onclick = () => playTrack(index);
+        songListEl.appendChild(item);
+      });
+    }
+
+    function playTrack(index) {
+      currentIndex = index;
+      const track = playlist[currentIndex];
+      audioPlayer.src = track.url;
+      audioPlayer.play();
+      document.getElementById('nowPlaying').innerText = "Odtwarzanie: " + track.name;
+      renderPlaylist();
+    }
+
+    audioPlayer.onended = () => {
+      if (currentIndex + 1 < playlist.length) playTrack(currentIndex + 1);
+    };
+
+    loadMusicFromGitHub();
+  </script>
+</body>
+</html>
