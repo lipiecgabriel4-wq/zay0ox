@@ -70,9 +70,9 @@
   </footer>
 
   <script>
-    // WPISZ TUTAJ SWOJĄ NAZWĘ UŻYTKOWNIKA Z GITHUBA ORAZ NAZWĘ REPOZYTORIUM:
-    const GITHUB_USER = "TWOJ_NICK_GITHUB";
-    const GITHUB_REPO = "NAZWA_REPOZYTORIUM";
+    // Twoje dane z GitHuba są już tutaj wpisane:
+    const GITHUB_USER = "lipiecgabriel4-wq";
+    const GITHUB_REPO = "zay0ox";
 
     let playlist = [];
     let currentIndex = 0;
@@ -94,7 +94,7 @@
 
         renderPlaylist();
       } catch (err) {
-        document.getElementById('song-list').innerHTML = "Błąd ładowania folderu music/. Sprawdź nazwę użytkownika i repozytorium w kodzie!";
+        document.getElementById('song-list').innerHTML = "Błąd ładowania folderu music/. Sprawdź czy folder 'music' istnieje w repozytorium!";
       }
     }
 
