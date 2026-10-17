@@ -1,0 +1,204 @@
+// Dane repozytorium GitHub
+const GITHUB_USER = "lipiecgabriel4-wq";
+const GITHUB_REPO = "zay0ox";
+
+// Częstotliwości korektora graficznego
+const eqFrequencies = [32, 64, 125, 250, 500, '1k', '2k', '4k', '8k', '16k'];
+
+let playlist = [];
+let currentIndex = 0;
+
+let audioCtx, sourceNode, gainNode, limiterNode, eqFilters = [];
+let isAudioInit = false;
+
+const audioPlayer = document.getElementById('audioPlayer');
+
+// Regualcja głośności z zapasem mocy przeciwko przesterom
+function changeVolume(val) {
+    if (gainNode && audioCtx) {
+        gainNode.gain.setValueAtTime((val / 100) * 0.5, audioCtx.currentTime);
+    }
+}
+
+// Generowanie suwaków equalizera w HTML
+function generateEqSliders() {
+    const container = document.getElementById('eq-sliders-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    eqFrequencies.forEach((freq, index) => {
+        const sliderGroup = document.createElement('div');
+        sliderGroup.className = 'eq-slider-group';
+        sliderGroup.innerHTML = `
+            <div class="eq-db" id="val-db-${index}">0dB</div>
+            <div class="eq-slider-container">
+                <input type="range" class="eq-slider" min="-12" max="12" value="0" step="0.5" oninput="changeEqFilter(${index}, this.value)">
+            </div>
+            <div class="eq-freq-label">${freq}</div>
+        `;
+        container.appendChild(sliderGroup);
+    });
+}
+
+// Inicjalizacja Web Audio API i silnika dźwięku
+function initAudioContext() {
+    if (isAudioInit) return;
+    
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AudioContext();
+    sourceNode = audioCtx.createMediaElementSource(audioPlayer);
+
+    // Węzeł tłumika głośności (zapas cyfrowy)
+    gainNode = audioCtx.createGain();
+    gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+
+    // Limiter (DynamicsCompressor) wyłapujący szczyty sygnału
+    limiterNode = audioCtx.createDynamicsCompressor();
+    limiterNode.threshold.setValueAtTime(-1.0, audioCtx.currentTime);
+    limiterNode.knee.setValueAtTime(0, audioCtx.currentTime);
+    limiterNode.ratio.setValueAtTime(20, audioCtx.currentTime);
+    limiterNode.attack.setValueAtTime(0.003, audioCtx.currentTime);
+    limiterNode.release.setValueAtTime(0.05, audioCtx.currentTime);
+
+    // Filtry Biquad dla poszczególnych pasm
+    eqFilters = eqFrequencies.map((freq, index) => {
+        const filter = audioCtx.createBiquadFilter();
+        if (index === 0) {
+            filter.type = 'lowshelf';
+            filter.frequency.setValueAtTime(32, audioCtx.currentTime);
+        } else if (index === eqFrequencies.length - 1) {
+            filter.type = 'highshelf';
+            filter.frequency.setValueAtTime(16000, audioCtx.currentTime);
+        } else {
+            filter.type = 'peaking';
+            filter.frequency.setValueAtTime(typeof freq === 'string' ? parseInt(freq) * 1000 : freq, audioCtx.currentTime);
+            filter.Q.setValueAtTime(1.2, audioCtx.currentTime);
+        }
+        filter.gain.setValueAtTime(0, audioCtx.currentTime);
+        return filter;
+    });
+
+    // Łączenie toru audio: Źródło -> Filtry EQ -> Gain -> Limiter -> Wyjście
+    let current = sourceNode;
+    eqFilters.forEach(filter => {
+        current.connect(filter);
+        current = filter;
+    });
+    current.connect(gainNode);
+    gainNode.connect(limiterNode);
+    limiterNode.connect(audioCtx.destination);
+    
+    isAudioInit = true;
+}
+
+// Obsługa płynnej zmiany wartości pasm (bez trzasków)
+function changeEqFilter(index, value) {
+    if (!isAudioInit) initAudioContext();
+    
+    const dbLabel = document.getElementById(`val-db-${index}`);
+    if (dbLabel) {
+        dbLabel.innerText = (value > 0 ? '+' : '') + parseFloat(value).toFixed(1) + 'dB';
+    }
+    
+    if (eqFilters[index]) {
+        eqFilters[index].gain.setTargetAtTime(parseFloat(value), audioCtx.currentTime, 0.02);
+    }
+}
+
+// Skanowanie i automatyczne ładowanie plików MP3 z folderu music/ na GitHubie
+async function loadMusicFromGitHub() {
+    const statusText = document.getElementById('statusText');
+    try {
+        const response = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/music`);
+        const data = await response.json();
+        
+        playlist = data
+            .filter(file => file.name.endsWith('.mp3'))
+            .map(file => ({
+                name: file.name.replace(/\.[^/.]+$/, ""),
+                url: file.download_url
+            }));
+
+        if (statusText) statusText.innerText = `${playlist.length} utworów gotowych`;
+        renderPlaylist();
+    } catch (err) {
+        const songListEl = document.getElementById('song-list');
+        if (songListEl) {
+            songListEl.innerHTML = '<div style="color: #ff6b6b; padding: 10px; font-size: 0.8rem;">Błąd pobierania z folderu music/</div>';
+        }
+        if (statusText) statusText.innerText = "Błąd";
+    }
+}
+
+// Wyświetlanie listy utworów
+function renderPlaylist() {
+    const songListEl = document.getElementById('song-list');
+    if (!songListEl) return;
+    
+    songListEl.innerHTML = '';
+    if (playlist.length === 0) {
+        songListEl.innerHTML = '<div style="color: #888; padding: 10px; font-size: 0.8rem;">Brak plików MP3 w folderze</div>';
+        return;
+    }
+    playlist.forEach((track, index) => {
+        const item = document.createElement('div');
+        item.className = `song-item ${index === currentIndex ? 'active' : ''}`;
+        item.innerHTML = `🎵 ${track.name}`;
+        item.onclick = () => playTrack(index);
+        songListEl.appendChild(item);
+    });
+}
+
+// Odtwarzanie wybranego utworu
+async function playTrack(index) {
+    if (playlist.length === 0) return;
+    currentIndex = index;
+    const track = playlist[currentIndex];
+
+    const nowPlayingTitle = document.getElementById('nowPlayingTitle');
+    if (nowPlayingTitle) nowPlayingTitle.innerText = "Ładowanie...";
+
+    try {
+        const response = await fetch(track.url);
+        const blob = await response.blob();
+        audioPlayer.src = URL.createObjectURL(blob);
+    } catch (e) {
+        audioPlayer.src = track.url;
+    }
+    
+    audioPlayer.play();
+    if (nowPlayingTitle) nowPlayingTitle.innerText = track.name;
+
+    if (!isAudioInit) initAudioContext();
+    else if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    renderPlaylist();
+}
+
+// Kontrolki odtwarzacza
+function togglePlay() {
+    if (audioPlayer.paused) {
+        if (!isAudioInit) initAudioContext();
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        audioPlayer.play();
+    } else {
+        audioPlayer.pause();
+    }
+}
+
+function nextTrack() {
+    if (currentIndex + 1 < playlist.length) playTrack(currentIndex + 1);
+    else playTrack(0);
+}
+
+function prevTrack() {
+    if (currentIndex - 1 >= 0) playTrack(currentIndex - 1);
+}
+
+// Inicjalizacja przy wystartowaniu
+if (audioPlayer) {
+    audioPlayer.onended = nextTrack;
+}
+
+generateEqSliders();
+loadMusicFromGitHub();
