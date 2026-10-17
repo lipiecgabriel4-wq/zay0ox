@@ -64,13 +64,13 @@
     </head>
     <body id="eq">
         <header class="header">
-            <div class="header-title">🎛️ Audio Equalizer - Pro (±20dB)</div>
+            <div class="header-title">🎛️ Audio Equalizer - Pro (±30dB)</div>
             <div id="statusText" style="font-size: 0.75rem; color: #888;">Ładowanie z folderu music/...</div>
         </header>
 
         <div class="main-content">
             <div class="eq-panel">
-                <div style="font-size: 0.8rem; font-weight: 600; color: #ccc;">Korektor graficzny (Max ±20dB)</div>
+                <div style="font-size: 0.8rem; font-weight: 600; color: #ccc;">Korektor graficzny (Max ±30dB)</div>
                 <div class="eq-sliders" id="eq-sliders-container"></div>
             </div>
 
@@ -89,11 +89,11 @@
             </div>
             <div class="vol-container">
                 <span style="font-size: 0.75rem; color: #888;">🔊</span>
-                <input type="range" class="volume-slider" min="0" max="100" value="60" oninput="changeVolume(this.value)">
+                <input type="range" class="volume-slider" min="0" max="100" value="50" oninput="changeVolume(this.value)">
             </div>
         </footer>
 
-        <audio id="audioPlayer" crossorigin="anonymous"></audio>
+        <audio id="audioPlayer" crossorigin="anonymous" playsinline webkit-playsinline></audio>
 
         <script>
             const GITHUB_USER = "lipiecgabriel4-wq";
@@ -109,7 +109,7 @@
 
             function changeVolume(val) {
                 if (gainNode && audioCtx) {
-                    gainNode.gain.setValueAtTime((val / 100) * 0.4, audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime((val / 100) * 0.3, audioCtx.currentTime);
                 }
             }
 
@@ -122,8 +122,8 @@
                     sliderGroup.innerHTML = `
                         <div class="eq-db" id="val-db-${index}">0dB</div>
                         <div class="eq-slider-container">
-                            <!-- Zwiększony zakres suwaka do -20 / +20 dB -->
-                            <input type="range" class="eq-slider" min="-20" max="20" value="0" step="0.5" oninput="changeEqFilter(${index}, this.value)">
+                            <!-- Zwiększony zakres suwaka do -30 / +30 dB -->
+                            <input type="range" class="eq-slider" min="-30" max="30" value="0" step="0.5" oninput="changeEqFilter(${index}, this.value)">
                         </div>
                         <div class="eq-freq-label">${freq}</div>
                     `;
@@ -137,16 +137,16 @@
                 audioCtx = new AudioContext();
                 sourceNode = audioCtx.createMediaElementSource(audioPlayer);
 
-                // Bezpieczniejsza głośność początkowa (zapas na mocne podbicie dB)
+                // Bezpieczna głośność z dużym zapasem na mocne podbicie do ±30dB
                 gainNode = audioCtx.createGain();
-                gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
 
-                // Mocniejszy limiter chroniący przed przesterowaniem przy +20dB
+                // Ekstremalnie czuły limiter chroniący przed charczeniem przy ±30dB
                 limiterNode = audioCtx.createDynamicsCompressor();
-                limiterNode.threshold.setValueAtTime(-2.5, audioCtx.currentTime);
+                limiterNode.threshold.setValueAtTime(-3.0, audioCtx.currentTime);
                 limiterNode.knee.setValueAtTime(0, audioCtx.currentTime);
-                limiterNode.ratio.setValueAtTime(25, audioCtx.currentTime);
-                limiterNode.attack.setValueAtTime(0.002, audioCtx.currentTime);
+                limiterNode.ratio.setValueAtTime(30, audioCtx.currentTime);
+                limiterNode.attack.setValueAtTime(0.001, audioCtx.currentTime);
                 limiterNode.release.setValueAtTime(0.05, audioCtx.currentTime);
 
                 eqFilters = eqFrequencies.map((freq, index) => {
@@ -174,6 +174,17 @@
                 current.connect(gainNode);
                 gainNode.connect(limiterNode);
                 limiterNode.connect(audioCtx.destination);
+
+                // Pętla podtrzymująca dla iPhone'a
+                try {
+                    const silentBuffer = audioCtx.createBuffer(1, 1, 22050);
+                    const backgroundNode = audioCtx.createBufferSource();
+                    backgroundNode.buffer = silentBuffer;
+                    backgroundNode.loop = true;
+                    backgroundNode.connect(audioCtx.destination);
+                    backgroundNode.start(0);
+                } catch (e) {}
+
                 isAudioInit = true;
             }
 
@@ -228,27 +239,47 @@
 
                 document.getElementById('nowPlayingTitle').innerText = "Ładowanie...";
 
+                if (!isAudioInit) initAudioContext();
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    await audioCtx.resume();
+                }
+
+                // Bezpośrednie przypisanie URL do playera – idealne dla iOS
+                audioPlayer.src = track.url;
+                audioPlayer.load();
+                
                 try {
-                    const response = await fetch(track.url);
-                    const blob = await response.blob();
-                    audioPlayer.src = URL.createObjectURL(blob);
-                } catch (e) {
-                    audioPlayer.src = track.url;
+                    await audioPlayer.play();
+                } catch (err) {
+                    console.log("Autoplay zablokowany, wymaga interakcji");
                 }
                 
-                audioPlayer.play();
                 document.getElementById('nowPlayingTitle').innerText = track.name;
-
-                if (!isAudioInit) initAudioContext();
-                else if (audioCtx.state === 'suspended') audioCtx.resume();
-
+                setupMediaSession(track.name);
                 renderPlaylist();
+            }
+
+            function setupMediaSession(trackName) {
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: trackName,
+                        artist: 'Audio Equalizer Pro',
+                        album: 'Folder music/'
+                    });
+
+                    navigator.mediaSession.setActionHandler('play', () => { togglePlay(); });
+                    navigator.mediaSession.setActionHandler('pause', () => { togglePlay(); });
+                    navigator.mediaSession.setActionHandler('previoustrack', () => { prevTrack(); });
+                    navigator.mediaSession.setActionHandler('nexttrack', () => { nextTrack(); });
+                }
             }
 
             function togglePlay() {
                 if (audioPlayer.paused) {
                     if (!isAudioInit) initAudioContext();
-                    if (audioCtx.state === 'suspended') audioCtx.resume();
+                    if (audioCtx && audioCtx.state === 'suspended') {
+                        audioCtx.resume();
+                    }
                     audioPlayer.play();
                 } else {
                     audioPlayer.pause();
