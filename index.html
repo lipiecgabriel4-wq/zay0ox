@@ -64,13 +64,13 @@
     </head>
     <body id="eq">
         <header class="header">
-            <div class="header-title">🎛️ Audio Equalizer - Pro</div>
+            <div class="header-title">🎛️ Audio Equalizer - Pro (±20dB)</div>
             <div id="statusText" style="font-size: 0.75rem; color: #888;">Ładowanie z folderu music/...</div>
         </header>
 
         <div class="main-content">
             <div class="eq-panel">
-                <div style="font-size: 0.8rem; font-weight: 600; color: #ccc;">Korektor graficzny</div>
+                <div style="font-size: 0.8rem; font-weight: 600; color: #ccc;">Korektor graficzny (Max ±20dB)</div>
                 <div class="eq-sliders" id="eq-sliders-container"></div>
             </div>
 
@@ -89,14 +89,13 @@
             </div>
             <div class="vol-container">
                 <span style="font-size: 0.75rem; color: #888;">🔊</span>
-                <input type="range" class="volume-slider" min="0" max="100" value="70" oninput="changeVolume(this.value)">
+                <input type="range" class="volume-slider" min="0" max="100" value="60" oninput="changeVolume(this.value)">
             </div>
         </footer>
 
         <audio id="audioPlayer" crossorigin="anonymous"></audio>
 
         <script>
-            // Twoje dane repozytorium GitHub
             const GITHUB_USER = "lipiecgabriel4-wq";
             const GITHUB_REPO = "zay0ox";
 
@@ -110,7 +109,7 @@
 
             function changeVolume(val) {
                 if (gainNode && audioCtx) {
-                    gainNode.gain.setValueAtTime((val / 100) * 0.5, audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime((val / 100) * 0.4, audioCtx.currentTime);
                 }
             }
 
@@ -123,7 +122,8 @@
                     sliderGroup.innerHTML = `
                         <div class="eq-db" id="val-db-${index}">0dB</div>
                         <div class="eq-slider-container">
-                            <input type="range" class="eq-slider" min="-12" max="12" value="0" step="0.5" oninput="changeEqFilter(${index}, this.value)">
+                            <!-- Zwiększony zakres suwaka do -20 / +20 dB -->
+                            <input type="range" class="eq-slider" min="-20" max="20" value="0" step="0.5" oninput="changeEqFilter(${index}, this.value)">
                         </div>
                         <div class="eq-freq-label">${freq}</div>
                     `;
@@ -137,19 +137,18 @@
                 audioCtx = new AudioContext();
                 sourceNode = audioCtx.createMediaElementSource(audioPlayer);
 
-                // Węzeł głośności z zapasem cyfrowym
+                // Bezpieczniejsza głośność początkowa (zapas na mocne podbicie dB)
                 gainNode = audioCtx.createGain();
-                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
 
-                // Limiter zapobiegający przesterowaniu i charczeniu (Clipping)
+                // Mocniejszy limiter chroniący przed przesterowaniem przy +20dB
                 limiterNode = audioCtx.createDynamicsCompressor();
-                limiterNode.threshold.setValueAtTime(-1.0, audioCtx.currentTime);
+                limiterNode.threshold.setValueAtTime(-2.5, audioCtx.currentTime);
                 limiterNode.knee.setValueAtTime(0, audioCtx.currentTime);
-                limiterNode.ratio.setValueAtTime(20, audioCtx.currentTime);
-                limiterNode.attack.setValueAtTime(0.003, audioCtx.currentTime);
+                limiterNode.ratio.setValueAtTime(25, audioCtx.currentTime);
+                limiterNode.attack.setValueAtTime(0.002, audioCtx.currentTime);
                 limiterNode.release.setValueAtTime(0.05, audioCtx.currentTime);
 
-                // Tworzenie profesjonalnych filtrów pasmowych Biquad (identycznie jak w rozszerzeniu)
                 eqFilters = eqFrequencies.map((freq, index) => {
                     const filter = audioCtx.createBiquadFilter();
                     if (index === 0) {
@@ -167,7 +166,6 @@
                     return filter;
                 });
 
-                // Łączenie węzłów: Źródło -> Filtry EQ -> Głośność -> Limiter -> Głośniki
                 let current = sourceNode;
                 eqFilters.forEach(filter => {
                     current.connect(filter);
@@ -187,7 +185,6 @@
                 }
             }
 
-            // Automatyczne pobieranie listy piosenek bezpośrednio z folderu music/ na GitHubie
             async function loadMusicFromGitHub() {
                 try {
                     const response = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/music`);
